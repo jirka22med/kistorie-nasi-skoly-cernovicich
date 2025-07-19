@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktivní Historie Školy | SOŠ, SOU a ZŠ Třešť</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Akademická Harmonie -->
+    <!-- Application Structure Plan: Aplikace je strukturována kolem centrální interaktivní časové osy, která slouží jako hlavní navigace. Tento design byl zvolen, aby transformoval lineární historickou zprávu na poutavý, nelineární zážitek. Uživatel si může vybrat konkrétní období, které ho zajímá, což podporuje exploraci a usnadňuje pochopení klíčových vývojových fází a jejich vzájemných souvislostí. Struktura vizuálně odděluje historii pracovišť v Černovicích a Třešti a jasně ukazuje jejich spojení. Tento přístup je mnohem intuitivnější než prosté procházení textu a umožňuje uživateli aktivně se zapojit do objevování historie. Každá sekce má úvodní text pro kontext a obsahuje specifické informace (změny názvů, oborů, klíčové události) pro dané období. Sekce "Všechny studijní obory" poskytuje ucelený přehled všech vzdělávacích programů v celé historii školy, včetně aktualizovaných informací z webu školy. -->
+    <!-- Visualization & Content Choices: Report Info -> Cíl: Zobrazit chronologický vývoj a klíčové změny. -> Vizualizace: Interaktivní časová osa (HTML/CSS/JS) pro navigaci mezi obdobími. -> Interakce: Kliknutím na tlačítka osy se dynamicky zobrazuje obsah pro dané období. Cíl: Ukázat vývoj názvů. -> Prezentace: Dynamicky aktualizovaný textový blok a přehledná tabulka (HTML) v relevantní sekci. Cíl: Demonstrovat růst a rozšiřování školy. -> Vizualizace: Sloupcový graf (Chart.js/Canvas) znázorňující klíčové infrastrukturní přírůstky v čase. Cíl: Znázornit sloučení institucí. -> Prezentace: Diagram sloučení vytvořený pomocí HTML/Tailwind, který vizuálně spojuje jednotlivé subjekty. Cíl: Poskytnout komplexní přehled všech studijních oborů v historii školy. -> Vizualizace: Strukturovaný textový seznam s časovými údaji (HTML/CSS), rozdělený do chronologických fází, s aktualizovanými daty z webu školy. -> Interakce: Přístupná přes nové tlačítko v navigaci. -> Zdůvodnění: Tyto volby převádějí hustý text na stravitelné, interaktivní moduly, které usnadňují pochopení a udržují pozornost uživatele. Nový seznam oborů poskytuje podrobnou referenci s nejaktuálnějšími informacemi. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4; /* Warm Neutral */
+            color: #333D45; /* Dark Gray-Blue */
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+            border-bottom: 4px solid transparent;
+        }
+        .nav-button.active {
+            border-bottom-color: #D97706; /* Subtle Accent */
+            color: #1E3A8A; /* Main Accent Blue */
+            transform: translateY(-2px);
+        }
+        .content-section {
+            display: none;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        .content-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2">Historie naší školy</h1>
+            <p class="text-lg text-slate-600">SOŠ, SOU a ZŠ Třešť – Pracoviště Černovice</p>
+        </header>
+
+        <main>
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg w-full">
+                
+                <nav id="timeline-nav" class="mb-8 pb-4 border-b-2 border-slate-200">
+                    <p class="text-center text-slate-600 mb-4">Prozkoumejte naši historii kliknutím na jednotlivá období na časové ose.</p>
+                    <div class="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4">
+                        <button data-target="pocatky" class="nav-button active text-center font-semibold text-slate-700 py-2 px-3 rounded-t-lg">1898–1965<br><span class="text-sm font-normal">Založení a raná léta</span></button>
+                        <div class="text-2xl text-slate-300 hidden sm:block">&rarr;</div>
+                        <button data-target="specializace" class="nav-button text-center font-semibold text-slate-700 py-2 px-3 rounded-t-lg">1966–2016<br><span class="text-sm font-normal">Éra specializace</span></button>
+                        <div class="text-2xl text-slate-300 hidden sm:block">&rarr;</div>
+                        <button data-target="slouceni" class="nav-button text-center font-semibold text-slate-700 py-2 px-3 rounded-t-lg">2017–Současnost<br><span class="text-sm font-normal">Sloučení a budoucnost</span></button>
+                        <div class="text-2xl text-slate-300 hidden sm:block">&rarr;</div>
+                        <button data-target="obory" class="nav-button text-center font-semibold text-slate-700 py-2 px-3 rounded-t-lg">Všechny obory<br><span class="text-sm font-normal">Přehled od 1898</span></button>
+                    </div>
+                </nav>
+
+                <div id="content-container">
+                    
+                    <section id="pocatky" class="content-section active">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-4">Počátky a raný vývoj (1898–1965)</h2>
+                        <p class="mb-6 text-slate-700 leading-relaxed">Tato kapitola mapuje založení a první desetiletí existence školní budovy na Mariánském náměstí 72 v Černovicích. Od položení základního kamene v roce 1898 prošla instituce mnoha transformacemi, které odrážely bouřlivé politické a společenské změny 20. století, od Rakouska-Uherska, přes první republiku a války až po poválečné reformy.</p>
+                        
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-slate-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-lg mb-2 text-slate-800">Klíčové milníky</h3>
+                                <ul class="list-disc list-inside space-y-2 text-slate-600">
+                                    <li><span class="font-semibold">1898:</span> Zahájení stavby budovy školy.</li>
+                                    <li><span class="font-semibold">1899:</span> Kolaudace a otevření Měšťanské chlapecké školy s nápisem „Škola základ blaha“.</li>
+                                    <li><span class="font-semibold">1912:</span> Dívkám povolena docházka, postavena letní tělocvična.</li>
+                                    <li><span class="font-semibold">1918:</span> Přejmenování na Občanskou školu po vzniku ČSR.</li>
+                                    <li><span class="font-semibold">1922:</span> Zavedení elektrického proudu jako symbol modernizace.</li>
+                                    <li><span class="font-semibold">1948:</span> Obnovení provozu pod názvem Národní škola Černovice.</li>
+                                    <li><span class="font-semibold">1953:</span> Zavedena Osmiletá střední škola Černovice.</li>
+                                    <li><span class="font-semibold">1958:</span> Vznik Mistrovské zemědělské školy.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-lg mb-2 text-slate-800">Infrastrukturní rozvoj</h3>
+                                <p class="mb-4 text-slate-600">Graf ukazuje klíčové investice do školní infrastruktury, které značně rozšířily možnosti výuky a aktivit pro studenty.</p>
+                                <div class="chart-container">
+                                    <canvas id="infraChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="specializace" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-4">Éra specializace v Černovicích (1966–2016)</h2>
+                        <p class="mb-6 text-slate-700 leading-relaxed">Tato etapa představuje klíčový posun v zaměření školy. Založením Zvláštní učňovské školy internátní v roce 1966 se Černovice staly centrem pro odbornou přípravu žáků se speciálními vzdělávacími potřebami. Následující desetiletí byla ve znamení dynamického rozvoje, rozšiřování oborů a budování moderního zázemí pro studenty i pedagogy.</p>
+
+                        <div class="grid md:grid-cols-5 gap-6">
+                            <div class="md:col-span-3 bg-slate-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-lg mb-2 text-slate-800">Od řemesel k službám: Vývoj oborů</h3>
+                                <p class="text-slate-600 mb-4">Nabídka oborů se neustále přizpůsobovala potřebám společnosti a trhu práce. Tento vývoj ukazuje flexibilitu školy a její snahu poskytnout studentům co nejlepší uplatnění v životě.</p>
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-blue-200 text-blue-800 font-bold p-2 rounded-full h-10 w-10 flex items-center justify-center text-sm">60's</div>
+                                        <p class="text-slate-700">Tradiční řemesla: Malíř pokojů, Opravář obuvi, Zedník.</p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-green-200 text-green-800 font-bold p-2 rounded-full h-10 w-10 flex items-center justify-center text-sm">90's</div>
+                                        <p class="text-slate-700">Gastronomie a služby: Obchodní provoz, Kuchařské práce, zřízení Praktické školy.</p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-yellow-200 text-yellow-800 font-bold p-2 rounded-full h-10 w-10 flex items-center justify-center text-sm">00's</div>
+                                        <p class="text-slate-700">Sociální péče: Zahájení oboru Pečovatelské práce, který reflektuje nové společenské potřeby.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="md:col-span-2 bg-slate-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-lg mb-2 text-slate-800">Klíčové události</h3>
+                                <ul class="list-disc list-inside space-y-2 text-slate-600">
+                                    <li><span class="font-semibold">1966:</span> Založení Zvláštní učňovské školy internátní.</li>
+                                    <li><span class="font-semibold">1978:</span> Změna názvu na Zvláštní odborné učiliště.</li>
+                                    <li><span class="font-semibold">1982:</span> Stavba dívčího internátu a tělocvičny.</li>
+                                    <li><span class="font-semibold">1991:</span> Získání právní subjektivity.</li>
+                                    <li><span class="font-semibold">1996:</span> Transformace Speciální rodinné školy na Praktickou školu.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="slouceni" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-4">Sloučení a současná podoba (2017–dnes)</h2>
+                        <p class="mb-6 text-slate-700 leading-relaxed">Nejnovější kapitola historie školy je ve znamení integrace a strategického spojování. Rozhodnutím zřizovatele, Kraje Vysočina, došlo ke dvěma významným sloučením, která vytvořila současnou komplexní instituci. Cílem bylo optimalizovat zdroje a vytvořit ucelený vzdělávací systém od základního speciálního vzdělávání až po odborné obory, který lépe slouží studentům z celého regionu.</p>
+                        
+                        <div class="bg-slate-50 p-4 rounded-lg mb-6">
+                           <h3 class="font-bold text-lg mb-3 text-slate-800 text-center">Proces integrace</h3>
+                           <div class="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
+                                <!-- Část Třešť -->
+                                <div class="flex flex-col items-center">
+                                    <div class="p-3 bg-amber-100 border-2 border-amber-300 rounded-lg shadow-sm">
+                                        <p class="font-bold text-amber-900">SOŠ a SOU Třešť</p>
+                                        <p class="text-xs text-amber-700">Bohatá historie od 16. stol.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-3xl font-light text-slate-400 mx-2">+</div>
+
+                                <!-- Část Černovice -->
+                                <div class="flex flex-col items-center">
+                                    <div class="p-3 bg-sky-100 border-2 border-sky-300 rounded-lg shadow-sm">
+                                        <p class="font-bold text-sky-900">OU a PŠ Černovice</p>
+                                        <p class="text-xs text-sky-700">(Mariánské nám. 72)</p>
+                                    </div>
+                                </div>
+
+                                <!-- Šipka a výsledek 2017 -->
+                                <div class="text-3xl font-light text-slate-400 mx-2 hidden md:block">&rarr;</div>
+                                <div class="text-3xl font-light text-slate-400 my-2 md:hidden">&darr;</div>
+
+                                <div class="p-4 bg-green-100 border-2 border-green-300 rounded-lg shadow-sm">
+                                    <p class="font-bold text-green-900">SOŠ a SOU Třešť</p>
+                                    <p class="text-xs text-green-700">(Sloučení k 1. 7. 2017)</p>
+                                </div>
+                           </div>
+                           
+                           <div class="flex justify-center my-4">
+                               <div class="text-3xl font-light text-slate-400">&darr;</div>
+                           </div>
+                           
+                           <div class="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
+                                <div class="p-3 bg-purple-100 border-2 border-purple-300 rounded-lg shadow-sm">
+                                    <p class="font-bold text-purple-900">ZŠ speciální a PŠ</p>
+                                    <p class="text-xs text-purple-700">(Dobešovská 1, Černovice)</p>
+                                </div>
+
+                                <div class="text-3xl font-light text-slate-400 mx-2">+</div>
+
+                                <div class="p-3 bg-green-100 border-2 border-green-300 rounded-lg shadow-sm">
+                                    <p class="font-bold text-green-900">SOŠ a SOU Třešť</p>
+                                    <p class="text-xs text-green-700">(výsledek z r. 2017)</p>
+                                </div>
+
+                                <div class="text-3xl font-light text-slate-400 mx-2 hidden md:block">&rarr;</div>
+                                <div class="text-3xl font-light text-slate-400 my-2 md:hidden">&darr;</div>
+                               
+                                <div class="p-4 bg-blue-200 border-2 border-blue-400 rounded-lg shadow">
+                                    <p class="font-bold text-blue-900">SOŠ, SOU a ZŠ Třešť</p>
+                                    <p class="text-xs font-semibold text-blue-800">Současná podoba (od 1. 7. 2020)</p>
+                                </div>
+                           </div>
+
+                        </div>
+                        
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-slate-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-lg mb-2 text-slate-800">Současná struktura</h3>
+                                <p class="text-slate-600 mb-3">Dnes škola funguje jako komplexní vzdělávací centrum na několika pracovištích:</p>
+                                <ul class="list-none space-y-2">
+                                    <li><span class="font-semibold text-blue-800">Třešť:</span> Hlavní sídlo, teoretická výuka, dílny, domov mládeže.</li>
+                                    <li><span class="font-semibold text-blue-800">Černovice (Mariánské nám.):</span> Výuka oborů kategorií "E" a "C" (učební a praktické).</li>
+                                    <li><span class="font-semibold text-blue-800">Černovice (Dobešovská):</span> Základní vzdělávání pro žáky se speciálními potřebami.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-lg">
+                                <h3 class="font-bold text-lg mb-2 text-slate-800">Vedení a zřizovatel</h3>
+                                <p class="text-slate-600">Instituce si zachovává jasné vedení a kontinuitu.</p>
+                                <ul class="list-none space-y-2 mt-3">
+                                    <li><strong>Současný ředitel:</strong> Mgr. Ing. Karel Matějů</li>
+                                    <li><strong>Zřizovatel:</strong> Kraj Vysočina</li>
+                                    <li><strong>Právní forma:</strong> Příspěvková organizace</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                    </section>
+
+                    <section id="obory" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-900 mb-4">Všechny studijní obory (1898–2025)</h2>
+                        <p class="mb-6 text-slate-700 leading-relaxed">Tato sekce poskytuje ucelený přehled všech studijních a učebních oborů, které škola, včetně pracoviště na Mariánském náměstí 72 v Černovicích a následně sloučené instituce v Třešti, v průběhu své historie nabízela. Ukazuje dynamický vývoj a adaptaci na společenské potřeby a požadavky trhu práce.</p>
+                        
+                        <div class="bg-slate-50 p-6 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-lg mb-3 text-slate-800">Přehled oborů podle období</h3>
+                            <div class="space-y-6">
+                                <div>
+                                    <h4 class="font-semibold text-blue-800 mb-2">1898–1965: Raná léta a všeobecné školy v Černovicích</h4>
+                                    <ul class="list-disc list-inside space-y-1 text-slate-600">
+                                        <li><span class="font-semibold">Měšťanská chlapecká škola</span> (od 1899) – základní vzdělání s praktickým zaměřením.</li>
+                                        <li><span class="font-semibold">Měšťanská škola</span> (od 1912) – rozšíření docházky i pro dívky.</li>
+                                        <li><span class="font-semibold">Lidová škola hospodářská</span> (od 1919) – zaměření na zemědělské dovednosti.</li>
+                                        <li><span class="font-semibold">Hospodářská pokračovací škola</span> (od 1921) – pokračovací vzdělání v hospodářství.</li>
+                                        <li><span class="font-semibold">Osmiletá střední škola Černovice</span> (od 1953) – komplexní základní vzdělání.</li>
+                                        <li><span class="font-semibold">Mistrovská zemědělská škola</span> (od 1958) – příprava mistrů v zemědělství.</li>
+                                    </ul>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="font-semibold text-green-800 mb-2">1966–2016: Éra specializace a odborného učiliště (převážně Černovice)</h4>
+                                    <ul class="list-disc list-inside space-y-1 text-slate-600">
+                                        <li><span class="font-semibold">Zvláštní učňovská škola internátní</span> (od 1966) – první instituce pro žáky se speciálními potřebami.</li>
+                                        <li><span class="font-semibold">Malíř pokojů</span> (od 1966) – učební obor.</li>
+                                        <li><span class="font-semibold">Opravář obuvi</span> (od 1966) – učební obor, později ukončen.</li>
+                                        <li><span class="font-semibold">Zedník</span> (od 1968) – učební obor.</li>
+                                        <li><span class="font-semibold">Speciální rodinná škola</span> (od 1992, později Praktická škola).</li>
+                                        <li><span class="font-semibold">Obchodní provoz (příprava jídel)</span> (od 1994/95) – učební obor, nahrazen Kuchařskými pracemi.</li>
+                                        <li><span class="font-semibold">Dálkové studium (středoškolské vzdělání)</span> (od 1994/95) – ve spolupráci s 1. KŠPA.</li>
+                                        <li><span class="font-semibold">Kuchařské práce</span> (od 1996) – učební obor.</li>
+                                        <li><span class="font-semibold">Praktická škola</span> (od 1996) – zaměření pro kuchařské a stavební práce, později též 2letá varianta.</li>
+                                        <li><span class="font-semibold">Pečovatelské práce</span> (zahájeno po 1996) – učební obor.</li>
+                                        <li><span class="font-semibold">Pěstební a lesnické práce</span> (ukončeny po 1996) – původní učební obor.</li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 class="font-semibold text-purple-800 mb-2">2017–Současnost: Sloučení a komplexní nabídka</h4>
+                                    <p class="text-slate-600 mb-2">Současné tříleté učební obory (kategorie "E" a "C"), nabízené na pracovišti Mariánské náměstí 72 a dalších pracovištích sloučené školy:</p>
+                                    <ul class="list-disc list-inside space-y-1 text-slate-600">
+                                        <li><span class="font-semibold">Truhlářské práce</span></li>
+                                        <li><span class="font-semibold">Zednické práce</span></li>
+                                        <li><span class="font-semibold">Malířské a natěračské práce</span></li>
+                                        <li><span class="font-semibold">Potravinářské práce</span></li>
+                                        <li><span class="font-semibold">Pečovatelské práce</span></li>
+                                        <li><span class="font-semibold">Kuchařské práce</span></li>
+                                        <li><span class="font-semibold">Strojírenské práce</span></li>
+                                        <li><span class="font-semibold">Ubytovací služby</span></li>
+                                        <li><span class="font-semibold">Základní vzdělávání pro žáky se speciálními potřebami</span> (pracoviště Dobešovská 1, Černovice)</li>
+                                        <li><span class="font-semibold">Široká škála dalších odborných a studijních oborů z Třeště</span> (např. truhlář, řezník-uzenář, kuchař-číšník, apod.)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center mt-10">
+            <p class="text-slate-500 text-sm">Aplikace vytvořena na základě historického průzkumu. &copy; 2024</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    contentSections.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            const infraCtx = document.getElementById('infraChart').getContext('2d');
+            new Chart(infraCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['1912', '1969', '1975', '1982', '1984'],
+                    datasets: [{
+                        label: 'Klíčové přírůstky infrastruktury',
+                        data: [1, 2, 3, 4, 5],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.6)',
+                            'rgba(16, 185, 129, 0.6)',
+                            'rgba(234, 179, 8, 0.6)',
+                            'rgba(239, 68, 68, 0.6)',
+                            'rgba(139, 92, 246, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(234, 179, 8, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(139, 92, 246, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                           display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const labels = ['Letní tělocvična', 'Nové dílny', 'Zřízení internátu', 'Dívčí internát a tělocvična', 'Další přístavba'];
+                                    return labels[context.dataIndex] || '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            display: false
+                        },
+                        x: {
+                           ticks: {
+                              font: {
+                                 weight: '600'
+                              }
+                           }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
